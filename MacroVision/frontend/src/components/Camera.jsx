@@ -1,5 +1,5 @@
-import React, { useState, useRef } from 'react';
-import { predictMacros } from '../services/api';
+import React, { useState } from 'react';
+
 
 export default function Camera() {
   const [image, setImage] = useState(null);
@@ -12,11 +12,20 @@ export default function Camera() {
     if (!file) return;
     
     setLoading(true);
+    setImage(URL.createObjectURL(file));
+    
     try {
-      const prediction = await predictMacros(file);
-      setResults(prediction);
+      const formData = new FormData();
+      formData.append('file', file);
+      
+      const response = await fetch('http://localhost:8000/predict', {
+        method: 'POST',
+        body: formData,
+      });
+      const data = await response.json();
+      setResults(data);
     } catch (error) {
-      alert('Error analyzing food: ' + error.message);
+      console.error('Error analyzing image:', error);
     } finally {
       setLoading(false);
     }
@@ -31,18 +40,17 @@ export default function Camera() {
         capture="environment"
         onChange={handleCapture}
         style={{ display: 'none' }}
+        id="camera-input"
       />
+      <label htmlFor="camera-input">
+        <button disabled={loading}>
+          {loading ? 'Analyzing...' : 'Take Food Photo'}
+        </button>
+      </label>
       
-      <button 
-        onClick={() => fileInputRef.current.click()}
-        disabled={loading}
-      >
-        {loading ? 'Analyzing...' : 'Take Food Photo'}
-      </button>
-
       {image && (
         <div className="image-preview">
-          <img src={URL.createObjectURL(image)} alt="Captured food" />
+          <img src={image} alt="Captured food" />
         </div>
       )}
 
